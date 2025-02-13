@@ -2,6 +2,11 @@ from random import choice, randint
 
 import pygame as pg
 
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+
 # Константы для размеров поля и сетки:
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
 GRID_SIZE = 20
@@ -72,7 +77,7 @@ def draw_dialog(screen, image_path):
             center=(dialog_x + dialog_width // 2, dialog_y + 70))
         screen.blit(image, image_rect)
     except pg.error as e:
-        print(f"Ошибка загрузки изображения: {e}")
+        logging(f"Ошибка загрузки изображения: {e}")
 
     # Отрисовка кнопки "Рестарт"
     button_rect = pg.Rect(dialog_x + 50, dialog_y + 180,
