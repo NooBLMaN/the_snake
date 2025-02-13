@@ -48,6 +48,59 @@ pg.display.set_caption('Змейка')
 clock = pg.time.Clock()
 
 
+def draw_dialog(screen, image_path):
+    """Отрисовывает диалоговое окно с текстом, картинкой и кнопкой."""
+    dialog_width = 250  # Ширина диалогового окна для картинки
+    dialog_height = 250  # Высота диалогового окна для картинки
+    dialog_x = (SCREEN_WIDTH - dialog_width) // 2
+    dialog_y = (SCREEN_HEIGHT - dialog_height) // 2
+    text_size = 24
+    text = 'Камень я не дам'
+    width_button = 150
+    height_button = 40
+
+    # Отрисовка фона диалогового окна
+    dialog_rect = pg.Rect(dialog_x, dialog_y, dialog_width, dialog_height)
+    pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, dialog_rect)
+    pg.draw.rect(screen, BORDER_COLOR, dialog_rect, 2)
+
+    # Загрузка и отрисовка картинки
+    try:
+        image = pg.image.load(image_path)  # Загружаем изображение
+        image = pg.transform.scale(image, (200, 100))  # Масштабируем его
+        image_rect = image.get_rect(
+            center=(dialog_x + dialog_width // 2, dialog_y + 70))
+        screen.blit(image, image_rect)
+    except pg.error as e:
+        print(f"Ошибка загрузки изображения: {e}")
+
+    # Отрисовка кнопки "Рестарт"
+    button_rect = pg.Rect(dialog_x + 50, dialog_y + 180,
+                          width_button, height_button)
+    pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, button_rect)
+    pg.draw.rect(screen, BORDER_COLOR, button_rect, 2)
+
+    button_font = pg.font.Font(None, text_size)
+    button_text = button_font.render(text, True, LIGHT_YELLOW)
+    button_text_rect = button_text.get_rect(center=button_rect.center)
+    screen.blit(button_text, button_text_rect)
+
+    return button_rect
+
+
+def handle_dialog_events(button_rect):
+    """Обрабатывает события в диалоговом окне."""
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
+            raise SystemExit
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            # Проверяем, была ли нажата кнопка "Рестарт"
+            if button_rect.collidepoint(event.pos):
+                return True  # Игрок нажал "Рестарт"
+    return False
+
+
 class GameObject:
     """Базовый класс для всех игровых объектов."""
 
@@ -223,62 +276,68 @@ def draw_object(screen, apple, snake, stones, gold_apples, score):
 def main():
     """Основной цикл игры."""
     pg.init()
-    min_snake_length_for_self_collision = 4
-    stone_spawn_interval = 5
-    gold_apple_spawn_interrval = 10
     apple, snake, stones, gold_apples, score = init_game()
+    game_over = False
+    game_over_image = "stone2.jpg"
+    stone_spawn_intervall = 5
+    gold_apple_spawn_intervall = 10
+    a_p = apple.position
 
     while True:
         clock.tick(SPEED)
 
-        # Обработка событий
-        handle_keys(snake)
+        if not game_over:
+            # Обработка событий
+            handle_keys(snake)
 
-        # Движение змейки
-        snake.move()
-        snake.update_direction()
+            # Движение змейки
+            snake.move()
+            snake.update_direction()
 
-        # Проверка коллизий
-        head = snake.get_head_position()
+            # Проверка коллизий
+            head = snake.get_head_position()
 
-        # Съедание яблока
-        if head == apple.position:
-            snake.length += 1
-            score += 1
-            apple.randomize_position(snake.positions)
+            # Съедание яблока
+            if head == apple.position:
+                snake.length += 1
+                score += 1
+                apple.randomize_position(snake.positions)
 
-            # Добавление камня каждые 5 очков
-            if score % stone_spawn_interval == 0:
-                n_stone = Stone()
-                n_stone.randomize_position(snake.positions + [apple.position])
-                stones.append(n_stone)
+                # Добавление камня каждые 5 очков
+                if score % stone_spawn_intervall == 0:
+                    n_stone = Stone()
+                    n_stone.randomize_position(snake.positions + [a_p])
+                    stones.append(n_stone)
 
-            # Добавление золотого яблока каждые 10 очков
-            if score % gold_apple_spawn_interrval == 0:
-                ng_apple = GoldApple()
-                ng_apple.randomize_position(snake.positions + [apple.position])
-                gold_apples.append(ng_apple)
+                # Добавление золотого яблока каждые 10 очков
+                if score % gold_apple_spawn_intervall == 0:
+                    ng_apple = GoldApple()
+                    ng_apple.randomize_position(snake.positions + [a_p])
+                    gold_apples.append(ng_apple)
 
-        # Съедание золотого яблока
-        for gold_apple in gold_apples:
-            if head == gold_apple.position:
-                score += 3
-                gold_apples.remove(gold_apple)
-                stones = []
+            # Съедание золотого яблока
+            for gold_apple in gold_apples:
+                if head == gold_apple.position:
+                    score += 3
+                    gold_apples.remove(gold_apple)
+                    stones = []
 
-        # Столкновение с собой или камнем
-        if (head in snake.positions[min_snake_length_for_self_collision:]
-                or any(head == stone.position for stone in stones)):
-            snake.reset()
-            score = 0
-            stones = [Stone()]
-            for stone in stones:
-                stone.randomize_position()
-            gold_apples = []
-            apple.randomize_position(snake.positions)
+            # Столкновение с собой или камнем
+            if (head in snake.positions[4:]
+                    or any(head == stone.position for stone in stones)):
+                game_over = True
 
-        # Отрисовка
-        draw_object(screen, apple, snake, stones, gold_apples, score)
+            # Отрисовка
+            draw_object(screen, apple, snake, stones, gold_apples, score)
+        else:
+            # Отображение диалогового окна с картинкой
+            button_rect = draw_dialog(screen, game_over_image)
+            if handle_dialog_events(button_rect):
+                # Рестарт игры
+                apple, snake, stones, gold_apples, score = init_game()
+                game_over = False
+
+        pg.display.update()
 
 
 if __name__ == '__main__':
