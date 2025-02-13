@@ -275,7 +275,7 @@ def main():
     pg.init()
     apple, snake, stones, gold_apples, score = init_game()
     game_over = False
-    game_over_image = "stone2.jpg"
+    game_over_image = 'stone2.jpg'
     stone_spawn_intervall = 5
     gold_apple_spawn_intervall = 10
 
