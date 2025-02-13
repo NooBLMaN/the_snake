@@ -281,7 +281,6 @@ def main():
     game_over_image = "stone2.jpg"
     stone_spawn_intervall = 5
     gold_apple_spawn_intervall = 10
-    a_p = apple.position
 
     while True:
         clock.tick(SPEED)
@@ -306,13 +305,15 @@ def main():
                 # Добавление камня каждые 5 очков
                 if score % stone_spawn_intervall == 0:
                     n_stone = Stone()
-                    n_stone.randomize_position(snake.positions + [a_p])
+                    n_stone.randomize_position(
+                        snake.positions + [apple.position])
                     stones.append(n_stone)
 
                 # Добавление золотого яблока каждые 10 очков
                 if score % gold_apple_spawn_intervall == 0:
                     ng_apple = GoldApple()
-                    ng_apple.randomize_position(snake.positions + [a_p])
+                    ng_apple.randomize_position(
+                        snake.positions + [apple.position])
                     gold_apples.append(ng_apple)
 
             # Съедание золотого яблока
