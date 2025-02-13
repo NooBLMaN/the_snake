@@ -1,4 +1,4 @@
-from random import randint
+from random import choice, randint
 
 import pygame as pg
 
@@ -51,8 +51,8 @@ clock = pg.time.Clock()
 class GameObject:
     """Базовый класс для всех игровых объектов."""
 
-    def __init__(self, body_color=None):
-        self.position = None
+    def __init__(self, body_color=None, position=None):
+        self.position = position
         self.body_color = body_color
 
     def randomize_position(self, occupied_positions=None):
@@ -70,9 +70,15 @@ class GameObject:
 
     def draw(self):
         """Отрисовывает объект на экране."""
-        rect = pg.Rect(self.position, (GRID_SIZE, GRID_SIZE))
-        pg.draw.rect(screen, self.body_color, rect)
-        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+        raise NotImplementedError(
+            'Метод draw() должен быть переопределен в дочернем классе.')
+
+
+def draw_cell(position, body_color):
+    """Отрисовывает ячейку на экране."""
+    rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
+    pg.draw.rect(screen, body_color, rect)
+    pg.draw.rect(screen, BORDER_COLOR, rect, 1)
 
 
 class Stone(GameObject):
@@ -81,12 +87,20 @@ class Stone(GameObject):
     def __init__(self):
         super().__init__(body_color=STONE_COLOR)
 
+    def draw(self):
+        """Отрисовывает камень на экране."""
+        draw_cell(self.position, self.body_color)
+
 
 class Apple(GameObject):
     """Класс Яблоко."""
 
     def __init__(self):
         super().__init__(body_color=APPLE_COLOR)
+
+    def draw(self):
+        """Отрисовывает яблоко на экране."""
+        draw_cell(self.position, self.body_color)
 
 
 class GoldApple(GameObject):
@@ -95,6 +109,10 @@ class GoldApple(GameObject):
     def __init__(self):
         super().__init__(body_color=GOLD_APPLE)
 
+    def draw(self):
+        """Отрисовывает золотое яблоко на экране."""
+        draw_cell(self.position, self.body_color)
+
 
 class Snake(GameObject):
     """Класс Змейка."""
@@ -102,13 +120,13 @@ class Snake(GameObject):
     def __init__(self):
         super().__init__(body_color=SNAKE_COLOR)
         self.reset()
-        self.last = None
 
     def reset(self):
         """Сбрасывает змейку в начальное состояние."""
         self.length = 1
+        self.last = None
         self.positions = [((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))]
-        self.direction = RIGHT
+        self.direction = choice([LEFT, RIGHT, UP, DOWN])
         self.next_direction = None
 
     def get_head_position(self):
@@ -131,9 +149,7 @@ class Snake(GameObject):
     def draw(self):
         """Отрисовывает змейку на экране."""
         for position in self.positions:
-            rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
-            pg.draw.rect(screen, self.body_color, rect)
-            pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+            draw_cell(position, self.body_color)
 
         # Затирание последнего сегмента
         if self.last:
@@ -194,17 +210,22 @@ def draw_object(screen, apple, snake, stones, gold_apples, score):
     screen.fill(BOARD_BACKGROUND_COLOR)
     apple.draw()
     snake.draw()
+    size_text = 18
+    text_y = 10
     for stone in stones:
         stone.draw()
     for gold_apple in gold_apples:
         gold_apple.draw()
-    draw_text(screen, f'Счет: {score}', 18, SCREEN_WIDTH / 2, 10)
+    draw_text(screen, f'Счет: {score}', size_text, SCREEN_WIDTH / 2, text_y)
     pg.display.update()
 
 
 def main():
     """Основной цикл игры."""
     pg.init()
+    min_snake_length_for_self_collision = 4
+    stone_spawn_interval = 5
+    gold_apple_spawn_interrval = 10
     apple, snake, stones, gold_apples, score = init_game()
 
     while True:
@@ -227,13 +248,13 @@ def main():
             apple.randomize_position(snake.positions)
 
             # Добавление камня каждые 5 очков
-            if score % 5 == 0:
+            if score % stone_spawn_interval == 0:
                 n_stone = Stone()
                 n_stone.randomize_position(snake.positions + [apple.position])
                 stones.append(n_stone)
 
             # Добавление золотого яблока каждые 10 очков
-            if score % 10 == 0:
+            if score % gold_apple_spawn_interrval == 0:
                 ng_apple = GoldApple()
                 ng_apple.randomize_position(snake.positions + [apple.position])
                 gold_apples.append(ng_apple)
@@ -246,7 +267,7 @@ def main():
                 stones = []
 
         # Столкновение с собой или камнем
-        if (head in snake.positions[3:]
+        if (head in snake.positions[min_snake_length_for_self_collision:]
                 or any(head == stone.position for stone in stones)):
             snake.reset()
             score = 0
